@@ -1,0 +1,649 @@
+<title>Trilha de Vendas NTW Mineiros</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: uma trilha vertical — cada etapa é um marco na linha da esquerda, com ficha (status no CRM, dono, prazo, critério de saída) e o trabalho da etapa ao lado. */
+:root{
+  --bg:#f3f6fa; --surface:#ffffff; --fg:#13243b; --muted:#56657a; --line:#d6dee9;
+  --brand:#1d5aa8; --brand-soft:#e3edf9; --sky:#3d97d3; --warn:#a8650c; --warn-soft:#fbf1e2;
+  --ok:#2f7a4f; --ok-soft:#e5f3eb; --stop:#b23a3a; --stop-soft:#f9e8e8;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --w:1080px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1420; --surface:#111d2c; --fg:#e4ebf3; --muted:#97a6b9; --line:#22344b;
+  --brand:#6ea9ee; --brand-soft:#162a43; --sky:#7cc2ea; --warn:#e3a54e; --warn-soft:#2b2214;
+  --ok:#6fc597; --ok-soft:#14281e; --stop:#ec8a8a; --stop-soft:#2e1818; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0b1420; --surface:#111d2c; --fg:#e4ebf3; --muted:#97a6b9; --line:#22344b;
+  --brand:#6ea9ee; --brand-soft:#162a43; --sky:#7cc2ea; --warn:#e3a54e; --warn-soft:#2b2214;
+  --ok:#6fc597; --ok-soft:#14281e; --stop:#ec8a8a; --stop-soft:#2e1818; color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));}
+.wrap{max-width:var(--w);margin:0 auto;padding-block:48px 72px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(2.4rem,6vw,4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3vw,2rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+.eyebrow,.label{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.eyebrow{color:var(--brand)}
+.lede{font-size:1.15rem;max-width:62ch;color:var(--fg)}
+.muted{color:var(--muted)}
+a{color:var(--brand)}
+:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+
+/* Cabeçalho */
+header{display:flex;flex-direction:column;gap:18px}
+.rule{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-start;margin-top:8px;padding:16px 18px;border:1px solid var(--line);background:var(--surface);border-radius:6px;max-width:72ch}
+.rule strong{font-family:var(--f-display);font-weight:600}
+
+/* Mapa da trilha */
+.map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden}
+.map a{display:flex;flex-direction:column;gap:4px;padding:16px 16px 18px;text-decoration:none;color:var(--fg);border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.map a:nth-child(4n){border-right:0}
+.map a:nth-child(n+5){border-bottom:0}
+.map a:hover{background:var(--brand-soft)}
+.map .n{font-family:var(--f-mono);font-size:.78rem;color:var(--brand)}
+.map .t{font-family:var(--f-display);font-weight:600;font-size:1.05rem}
+.map .s{font-size:.85rem;color:var(--muted)}
+.map .phase{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:.88rem;color:var(--muted)}
+
+/* Etapas */
+.trail{display:flex;flex-direction:column;gap:0;position:relative}
+.stage{display:grid;grid-template-columns:56px minmax(0,1fr);gap:0 20px;position:relative;padding-bottom:56px;scroll-margin-top:24px}
+.stage::before{content:"";position:absolute;left:27px;top:56px;bottom:0;width:2px;background:var(--line)}
+.stage:last-child::before{display:none}
+.marker{width:56px;height:56px;border-radius:50%;border:2px solid var(--brand);background:var(--surface);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:1.35rem;color:var(--brand);position:relative;z-index:1}
+.stage.post .marker{border-color:var(--ok);color:var(--ok)}
+.body{display:flex;flex-direction:column;gap:20px;min-width:0;padding-top:6px}
+.head{display:flex;flex-direction:column;gap:6px}
+.head p{max-width:66ch}
+.card{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.card > div{padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0;border-right:1px solid var(--line)}
+.card > div:last-child{border-right:0}
+.card .v{font-size:.92rem;font-weight:500}
+.status{display:inline-block;font-family:var(--f-mono);font-size:.78rem;padding:1px 8px;border-radius:999px;background:var(--brand-soft);color:var(--brand);width:fit-content}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.block{display:flex;flex-direction:column;gap:10px;min-width:0}
+ul,ol{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+li::marker{color:var(--brand)}
+.note{padding:12px 16px;border-radius:6px;font-size:.95rem;display:flex;flex-direction:column;gap:4px}
+.note.warn{background:var(--warn-soft)} .note.warn .label{color:var(--warn)}
+.note.stop{background:var(--stop-soft)} .note.stop .label{color:var(--stop)}
+.note.ok{background:var(--ok-soft)} .note.ok .label{color:var(--ok)}
+.note.info{background:var(--brand-soft)} .note.info .label{color:var(--brand)}
+
+/* Tabelas */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:620px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--f-mono);font-weight:500;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+td:first-child{font-weight:600}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.grade{font-family:var(--f-display);font-weight:800;font-size:1.2rem}
+.grade.a{color:var(--ok)} .grade.b{color:var(--brand)} .grade.c{color:var(--muted)}
+
+/* Linha do tempo de implantação */
+.days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.day{border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.day .d{font-family:var(--f-mono);font-size:.78rem;color:var(--ok)}
+.day ul{font-size:.92rem}
+
+/* Scripts */
+.scripts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.script{border:1px solid var(--line);border-radius:6px;background:var(--surface);display:flex;flex-direction:column;min-width:0}
+.script .top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.script .top h3{font-size:1rem}
+.script .when{font-size:.82rem;color:var(--muted)}
+.script pre{margin:0;padding:14px;white-space:pre-wrap;word-wrap:break-word;font-family:var(--f-body);font-size:.93rem;line-height:1.55}
+button.copy{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.05em;text-transform:uppercase;background:transparent;color:var(--brand);border:1px solid var(--brand);border-radius:4px;padding:5px 10px;cursor:pointer;flex-shrink:0}
+button.copy:hover{background:var(--brand-soft)}
+button.copy.done{color:var(--ok);border-color:var(--ok)}
+
+section.part{display:flex;flex-direction:column;gap:20px}
+.week{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.week > div{border-top:3px solid var(--brand);background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-radius:0 0 6px 6px;min-width:0}
+.week .who{font-size:.82rem;color:var(--muted)}
+.week ul{font-size:.9rem}
+
+footer{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);padding-top:20px;display:flex;flex-direction:column;gap:6px;max-width:80ch}
+
+@media (max-width:820px){
+  .map{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .map a{border-right:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important}
+  .map a:nth-child(2n){border-right:0!important}
+  .map a:nth-child(n+7){border-bottom:0!important}
+  .card{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card > div:nth-child(2){border-right:0}
+  .card > div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .cols,.scripts{grid-template-columns:minmax(0,1fr)}
+  .days{grid-template-columns:minmax(0,1fr)}
+  .week{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:480px){
+  .stage{grid-template-columns:40px minmax(0,1fr);gap:0 14px}
+  .marker{width:40px;height:40px;font-size:1.05rem}
+  .stage::before{left:19px;top:40px}
+  .card{grid-template-columns:minmax(0,1fr)}
+  .card > div{border-right:0!important;border-bottom:1px solid var(--line)}
+  .card > div:last-child{border-bottom:0}
+  .week{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">NTW Mineiros · Contabilidade e Gestão Empresarial · Comercial</span>
+  <h1>Trilha de Vendas</h1>
+  <p class="lede">Do primeiro contato ao cliente que indica outro cliente. São oito etapas. Cada uma tem status no CRM, um dono, um prazo e um critério claro para avançar. A prospecção na rua segue o <strong>Roteiro de Rua</strong>; esta trilha mostra onde ele se encaixa e o que vem antes e depois dele.</p>
+  <div class="rule">
+    <span class="label" style="color:var(--brand)">Regra da trilha</span>
+    <p>Nenhum contato fica sem próximo passo com data. Se um lead está parado além do prazo da etapa, ele avança, volta para a cadência ou vai para <strong>safra futura</strong>, sempre com o motivo registrado.</p>
+  </div>
+</header>
+
+<nav aria-label="Etapas da trilha">
+  <div class="map">
+    <a href="#etapa-1"><span class="phase">Atração</span><span class="n">01</span><span class="t">Entrada</span><span class="s">Lead registrado com canal de origem</span></a>
+    <a href="#etapa-2"><span class="phase">Atração</span><span class="n">02</span><span class="t">Qualificação</span><span class="s">Classificado A, B ou C</span></a>
+    <a href="#etapa-3"><span class="phase">Venda</span><span class="n">03</span><span class="t">Diagnóstico</span><span class="s">Guia analisada ou descoberta feita</span></a>
+    <a href="#etapa-4"><span class="phase">Venda</span><span class="n">04</span><span class="t">Reunião</span><span class="s">15 minutos, número antes da técnica</span></a>
+    <a href="#etapa-5"><span class="phase">Venda</span><span class="n">05</span><span class="t">Proposta</span><span class="s">Cinco linhas, com preço</span></a>
+    <a href="#etapa-6"><span class="phase">Venda</span><span class="n">06</span><span class="t">Fechamento</span><span class="s">Contrato assinado ou perda com motivo</span></a>
+    <a href="#etapa-7"><span class="phase">Pós-venda</span><span class="n">07</span><span class="t">Implantação</span><span class="s">Primeiros 30 dias</span></a>
+    <a href="#etapa-8"><span class="phase">Pós-venda</span><span class="n">08</span><span class="t">Relacionamento</span><span class="s">Retenção, expansão e indicação</span></a>
+  </div>
+</nav>
+
+<div class="trail">
+
+<!-- 1 -->
+<article class="stage" id="etapa-1">
+  <div class="marker">1</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow">Atração</span>
+      <h2>Entrada do lead</h2>
+      <p class="muted">A rua não é o único canal. Indicação e parceiros costumam fechar mais rápido e com honorário melhor, porque o cliente já chega com confiança emprestada.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Novo lead</span></div>
+      <div><span class="label">Dono</span><span class="v">Apoio interno</span></div>
+      <div><span class="label">Prazo</span><span class="v">Registrar em até 24h</span></div>
+      <div><span class="label">Avança quando</span><span class="v">Tem decisor, WhatsApp, ramo e canal de origem</span></div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Canal</th><th>Como o lead chega</th><th>Primeira ação</th><th>Segue para</th></tr></thead>
+      <tbody>
+        <tr><td>Rua</td><td>Terça de visitas: 15 a 20 abordagens de três minutos por nicho e zona</td><td>Cadência de WhatsApp D+1 a D+30 do Roteiro de Rua</td><td>Qualificação na hora da visita (a pergunta do Simples)</td></tr>
+        <tr><td>Indicação de cliente</td><td>Cliente ativo passa o contato ou avisa o indicado</td><td>Sócio liga no mesmo dia e cita quem indicou</td><td>Direto para descoberta (etapa 3), sem cadência</td></tr>
+        <tr><td>Parceiros</td><td>Gerentes de banco e cooperativa, advogados, corretores, imobiliárias, revendas de insumos</td><td>Contato apresentado pelo parceiro, com contexto</td><td>Descoberta (etapa 3)</td></tr>
+        <tr><td>Instagram, site e QR do flyer</td><td>Mensagem pronta: “quero a análise da minha guia”</td><td>Resposta em até 2h no horário comercial</td><td>Pedido da guia (etapa 3)</td></tr>
+        <tr><td>Abertura de empresa</td><td>Quem procura o escritório para abrir CNPJ, mais a lista semanal de empresas recém-abertas em Mineiros</td><td>Oferta de abertura junto com o primeiro ano de contabilidade</td><td>Descoberta (etapa 3)</td></tr>
+        <tr><td>Eventos e jornadas</td><td>Jornada em 6 encontros (NTW + RC), palestras, lives</td><td>Lista de participantes vira lead, com autorização de contato</td><td>Qualificação</td></tr>
+        <tr><td>Agro</td><td>Folder do agro: produtor, revendas, armazéns, máquinas, transportadoras</td><td>Visita agendada fora da colheita</td><td>Descoberta (etapa 3)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note info"><span class="label">Registre sempre o canal</span><p>Sem o canal de origem não dá para saber, depois de três meses, qual fonte traz cliente e qual só traz trabalho.</p></div>
+  </div>
+</article>
+
+<!-- 2 -->
+<article class="stage" id="etapa-2">
+  <div class="marker">2</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow">Atração</span>
+      <h2>Qualificação</h2>
+      <p class="muted">Seis perguntas definem quanto esforço o lead merece. O objetivo é gastar o tempo do sócio onde o fechamento é provável e o honorário compensa.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Qualificado A · B · C</span></div>
+      <div><span class="label">Dono</span><span class="v">Apoio levanta, sócio classifica</span></div>
+      <div><span class="label">Prazo</span><span class="v">Até 2 dias úteis após a entrada</span></div>
+      <div><span class="label">Avança quando</span><span class="v">Ficha preenchida e classe definida</span></div>
+    </div>
+    <div class="cols">
+      <div class="block">
+        <h3>Ficha de qualificação</h3>
+        <ol>
+          <li><strong>Regime atual:</strong> MEI, Simples, Presumido ou Real?</li>
+          <li><strong>Faturamento anual</strong> aproximado e tendência</li>
+          <li><strong>Funcionários</strong> registrados e sócios com pró-labore</li>
+          <li><strong>Quem decide</strong> a troca de contador? Tem sócio ou cônjuge na decisão?</li>
+          <li><strong>Dor ou motivo:</strong> imposto alto, atraso, falta de atendimento, crescimento, banco pedindo balanço</li>
+          <li><strong>Momento:</strong> quando poderia começar? Há contrato com aviso prévio?</li>
+        </ol>
+        <p class="muted" style="font-size:.9rem">CNPJ, regime e porte estimado o apoio consulta antes do contato, como no Roteiro de Rua.</p>
+      </div>
+      <div class="block">
+        <h3>Classificação</h3>
+        <div class="tbl"><table style="min-width:0">
+          <thead><tr><th>Classe</th><th>Perfil</th><th>O que fazer</th></tr></thead>
+          <tbody>
+            <tr><td><span class="grade a">A</span></td><td>Presumido ou Real, ou Simples perto do limite; folha ativa; dor declarada</td><td>Diagnóstico nesta semana, sócio à frente</td></tr>
+            <tr><td><span class="grade b">B</span></td><td>Simples estável, sem dor declarada</td><td>Cadência normal até a oferta da análise da guia</td></tr>
+            <tr><td><span class="grade c">C</span></td><td>MEI, sem movimento ou contador parente</td><td>Safra futura: conteúdo a cada 90 dias</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="note info"><span class="label">Foco da unidade</span><p>A NTW Mineiros se posiciona em Lucro Presumido e Lucro Real, com contabilidade especializada por segmento. Um lead A nesses regimes tem prioridade sobre qualquer outro trabalho comercial da semana.</p></div>
+  </div>
+</article>
+
+<!-- 3 -->
+<article class="stage" id="etapa-3">
+  <div class="marker">3</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow">Venda</span>
+      <h2>Diagnóstico</h2>
+      <p class="muted">A partir daqui a conversa é sobre o dinheiro do cliente. Há dois caminhos: a guia que chegou pela cadência ou uma conversa de descoberta com quem veio por indicação, parceiro ou abertura.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Em diagnóstico</span></div>
+      <div><span class="label">Dono</span><span class="v">Sócio</span></div>
+      <div><span class="label">Prazo</span><span class="v">Confirmar em 2h, retorno em até 2 dias úteis</span></div>
+      <div><span class="label">Avança quando</span><span class="v">Reunião marcada com data e hora</span></div>
+    </div>
+    <div class="cols">
+      <div class="block">
+        <h3>Caminho A · guia recebida</h3>
+        <p>Roteiro fixo de análise, de 30 a 60 minutos:</p>
+        <ul>
+          <li>Segregação de receitas</li>
+          <li>Substituição tributária e monofásicos</li>
+          <li>Anexo do Simples e composição da folha</li>
+          <li>Pró-labore</li>
+          <li>Obrigações em atraso e parcelamentos</li>
+          <li>Efeito da transição da Reforma Tributária no caso dele</li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3>Caminho B · conversa de descoberta</h3>
+        <p>Até 30 minutos, de preferência presencial. Pergunte e anote:</p>
+        <ul>
+          <li>Como funciona o atendimento do contador hoje? O que você gostaria que fosse diferente?</li>
+          <li>Você sabe quanto pagou de imposto nos últimos 12 meses?</li>
+          <li>Recebe algum relatório que ajude a decidir? Quando foi a última reunião sobre resultado?</li>
+          <li>O banco ou algum fornecedor já pediu balanço ou DRE que demorou a sair?</li>
+          <li>Tem plano de crescer, contratar, abrir filial ou organizar a sucessão?</li>
+          <li>Quem mais participa dessa decisão?</li>
+        </ul>
+        <p class="muted" style="font-size:.9rem">Saia da conversa com a autorização para olhar as guias e o último balancete.</p>
+      </div>
+    </div>
+    <div class="note stop"><span class="label">Regra mais importante</span><p>O resultado do diagnóstico nunca vai por escrito. Se você manda a análise, ela chega ao contador atual e o problema é corrigido sem você. Diga apenas: “achei duas coisas aqui que valem 15 minutos de conversa” e ofereça dois horários concretos.</p></div>
+  </div>
+</article>
+
+<!-- 4 -->
+<article class="stage" id="etapa-4">
+  <div class="marker">4</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow">Venda</span>
+      <h2>Reunião de apresentação</h2>
+      <p class="muted">Quinze minutos, com a proposta impressa e assinada na pasta. A reunião existe para fechar, não para prometer uma proposta depois.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Reunião marcada</span></div>
+      <div><span class="label">Dono</span><span class="v">Sócio</span></div>
+      <div><span class="label">Prazo</span><span class="v">Até 5 dias úteis após o diagnóstico</span></div>
+      <div><span class="label">Avança quando</span><span class="v">Proposta entregue em mãos</span></div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Minuto</th><th>O que acontece</th><th>Frase-guia</th></tr></thead>
+      <tbody>
+        <tr><td class="num">0–3</td><td>O número antes da técnica</td><td>“Nos últimos 12 meses isso deu cerca de R$ [valor] a mais.”</td></tr>
+        <tr><td class="num">3–8</td><td>O porquê, em linguagem simples, com a guia dele na mesa</td><td>“Isso acontece porque [motivo]. É comum em [nicho] aqui da cidade.”</td></tr>
+        <tr><td class="num">8–11</td><td>O que muda com a NTW: rotina completa e reunião trimestral de resultado</td><td>“Além de entregar tudo em dia, a gente senta com você a cada trimestre para olhar números e estratégia.”</td></tr>
+        <tr><td class="num">11–13</td><td>A migração por nossa conta</td><td>“Você não faz nada. A gente pede a documentação e você assina dois documentos.”</td></tr>
+        <tr><td class="num">13–15</td><td>Proposta na mesa e fechamento pressuposto</td><td>“Prefere começar dia 1º ou dia 15?”</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</article>
+
+<!-- 5 -->
+<article class="stage" id="etapa-5">
+  <div class="marker">5</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow">Venda</span>
+      <h2>Proposta</h2>
+      <p class="muted">A proposta de fechamento cabe em cinco linhas. A proposta técnica completa, no modelo da Previne, fica para clientes de Presumido e Real que precisam apresentar a sócios.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Proposta entregue</span></div>
+      <div><span class="label">Dono</span><span class="v">Sócio monta, apoio formata</span></div>
+      <div><span class="label">Prazo</span><span class="v">Pronta antes da reunião</span></div>
+      <div><span class="label">Avança quando</span><span class="v">Cliente recebeu e tem data de resposta</span></div>
+    </div>
+    <div class="cols">
+      <div class="block">
+        <h3>As cinco linhas</h3>
+        <ol>
+          <li><strong>Escopo:</strong> contábil, fiscal, folha e obrigações acessórias</li>
+          <li><strong>Honorário mensal:</strong> o valor escrito, sem faixa. Pode ser expresso em salários mínimos, como na proposta Standard</li>
+          <li><strong>Incluso sem custo:</strong> acompanhamento da transição da Reforma Tributária e reunião trimestral de resultado</li>
+          <li><strong>Migração:</strong> por conta da NTW</li>
+          <li><strong>Data de início:</strong> uma data concreta</li>
+        </ol>
+        <p class="muted" style="font-size:.9rem">Deixe claro que em dezembro há uma taxa de encerramento do exercício no valor de um honorário mensal.</p>
+      </div>
+      <div class="block">
+        <h3>Portfólio para montar a proposta</h3>
+        <div class="tbl"><table style="min-width:0">
+          <thead><tr><th>Serviço</th><th>Quando oferecer</th></tr></thead>
+          <tbody>
+            <tr><td>Contabilidade Standard</td><td>Base de toda proposta: conformidade contábil, fiscal e trabalhista, enquadramento anual</td></tr>
+            <tr><td>Consultoria em gestão</td><td>Cliente quer entender números e crescer</td></tr>
+            <tr><td>Serviços tributários</td><td>Diagnóstico encontrou valor a recuperar</td></tr>
+            <tr><td>Soluções societárias</td><td>Holding, sucessão, reorganização de Ltda. ou S.A.</td></tr>
+            <tr><td>Renegociação de dívidas</td><td>Dívida bancária rural ou empresarial citada na conversa</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="note warn"><span class="label">Se travar no preço</span><p>Mostre o comparativo dos três critérios: hora técnica de R$ 180,00, múltiplo do honorário mensal e valor por item executado. Quando três lógicas chegam a valores próximos, o preço deixa de parecer arbitrário. Para dar desconto, tire escopo. Nunca baixe o preço mantendo tudo.</p></div>
+    <div class="note stop"><span class="label">Nunca</span><p>Proposta sem preço. Ela vira mais um convite para conversar.</p></div>
+  </div>
+</article>
+
+<!-- 6 -->
+<article class="stage" id="etapa-6">
+  <div class="marker">6</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow">Venda</span>
+      <h2>Fechamento</h2>
+      <p class="muted">Feche na reunião sempre que possível. Se não fechar, saia com a data do retorno marcada e mande a confirmação por WhatsApp antes de deixar o estacionamento.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Ganho · Perdido</span></div>
+      <div><span class="label">Dono</span><span class="v">Sócio</span></div>
+      <div><span class="label">Prazo</span><span class="v">Até 10 dias após a proposta</span></div>
+      <div><span class="label">Avança quando</span><span class="v">Contrato assinado, ou perda com motivo</span></div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Objeção na mesa</th><th>Resposta</th></tr></thead>
+      <tbody>
+        <tr><td>“Meu contador cobra menos.”</td><td>Compare o que está incluso, item a item, e volte ao valor que o diagnóstico encontrou. “Hoje você paga menos de honorário e mais de imposto.”</td></tr>
+        <tr><td>“Vou pensar.”</td><td>“Claro. O que falta para você decidir?” Marque o retorno ali mesmo: “Te ligo quinta às 10h, pode ser?”</td></tr>
+        <tr><td>“Trocar dá muito trabalho.”</td><td>“Por isso a migração é nossa. Você assina dois documentos e a gente cuida do resto, inclusive da conversa com o escritório atual.”</td></tr>
+        <tr><td>“Preciso falar com meu sócio.”</td><td>Ofereça uma reunião rápida com os dois, com dois horários concretos. Não deixe a proposta ser explicada sem você.</td></tr>
+        <tr><td>“Meu contador vai ficar chateado.”</td><td>“É uma troca profissional, e a gente faz a comunicação formal com todo respeito. Ele recebe tudo organizado.”</td></tr>
+        <tr><td>“Agora não é o momento.”</td><td>Pergunte quando é. Registre a data no CRM e retome nela com um assunto novo, sem cobrar a conversa antiga.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="cols">
+      <div class="block">
+        <h3>Acompanhamento pós-proposta</h3>
+        <ul>
+          <li><strong>D+2:</strong> pergunte se ficou alguma dúvida. Só isso.</li>
+          <li><strong>D+5:</strong> traga um ponto novo do diagnóstico, sem pedido.</li>
+          <li><strong>D+10:</strong> pergunta binária: começamos no dia X, ou agora não é o momento?</li>
+        </ul>
+        <p class="muted" style="font-size:.9rem">Sem resposta no D+10: marque como perdido, motivo “sem resposta”, e mova para safra futura com retorno em 90 dias.</p>
+      </div>
+      <div class="block">
+        <h3>Motivo de perda (obrigatório)</h3>
+        <ul>
+          <li>Preço</li>
+          <li>Ficou com o contador atual</li>
+          <li>Momento ou contrato vigente</li>
+          <li>Sem resposta</li>
+          <li>Fora do perfil da unidade</li>
+        </ul>
+        <p class="muted" style="font-size:.9rem">Revise os motivos todo mês. Se “preço” passar de um terço das perdas, o problema está no diagnóstico, não na tabela.</p>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 7 -->
+<article class="stage post" id="etapa-7">
+  <div class="marker">7</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow" style="color:var(--ok)">Pós-venda</span>
+      <h2>Implantação · primeiros 30 dias</h2>
+      <p class="muted">É aqui que a promessa da migração sem trabalho é cumprida ou quebrada. O cliente forma a opinião sobre o escritório no primeiro mês.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Em implantação</span></div>
+      <div><span class="label">Dono</span><span class="v">Equipe técnica, sócio acompanha</span></div>
+      <div><span class="label">Prazo</span><span class="v">30 dias</span></div>
+      <div><span class="label">Avança quando</span><span class="v">Primeira competência entregue sem pendência</span></div>
+    </div>
+    <div class="days">
+      <div class="day"><span class="d">Dia 0 a 3</span><ul>
+        <li>Contrato assinado e mensagem de boas-vindas</li>
+        <li>Lista de documentos enviada de uma vez só</li>
+        <li>Certificado digital, procuração no e-CAC e acessos da prefeitura, SEFAZ-GO e eSocial</li>
+        <li>Comunicação formal ao contador anterior</li>
+      </ul></div>
+      <div class="day"><span class="d">Dia 4 a 15</span><ul>
+        <li>Reunião de orientação técnica com a equipe da NTW</li>
+        <li>Quem manda o quê, até quando, e por qual canal</li>
+        <li>Contrato e honorário recorrente lançados no financeiro do escritório</li>
+        <li>Correção do que o diagnóstico encontrou entra no plano</li>
+      </ul></div>
+      <div class="day"><span class="d">Dia 16 a 30</span><ul>
+        <li>Primeira apuração revisada pelo sócio</li>
+        <li>Primeira entrega no prazo, com resumo curto ao cliente</li>
+        <li>Ligação do sócio: “como foi o primeiro mês?”</li>
+        <li>Status muda para cliente ativo</li>
+      </ul></div>
+    </div>
+    <div class="note ok"><span class="label">Primeira vitória</span><p>Mostre ao cliente, ainda no primeiro mês, um resultado concreto ligado ao diagnóstico: um imposto apurado corretamente, uma pendência resolvida, um valor a recuperar. É ele que sustenta o pedido de indicação mais à frente.</p></div>
+  </div>
+</article>
+
+<!-- 8 -->
+<article class="stage post" id="etapa-8">
+  <div class="marker">8</div>
+  <div class="body">
+    <div class="head">
+      <span class="eyebrow" style="color:var(--ok)">Pós-venda</span>
+      <h2>Relacionamento, expansão e indicação</h2>
+      <p class="muted">A trilha termina onde começa outra: o cliente satisfeito é o canal de entrada mais barato que o escritório tem.</p>
+    </div>
+    <div class="card">
+      <div><span class="label">Status no CRM</span><span class="status">Cliente ativo</span></div>
+      <div><span class="label">Dono</span><span class="v">Sócio e equipe técnica</span></div>
+      <div><span class="label">Ritmo</span><span class="v">Trimestral</span></div>
+      <div><span class="label">Gera</span><span class="v">Novos serviços e indicações</span></div>
+    </div>
+    <div class="cols">
+      <div class="block">
+        <h3>Rituais com o cliente</h3>
+        <ul>
+          <li><strong>Reunião trimestral:</strong> resultado, tributos, Reforma e gestão do negócio</li>
+          <li><strong>Pesquisa de 0 a 10</strong> aos 90 dias e depois a cada seis meses</li>
+          <li><strong>Avisos do calendário fiscal</strong> antes de cada prazo que afeta o cliente</li>
+          <li><strong>Planejamento do ano</strong> em novembro e dezembro, antes da escolha do regime</li>
+          <li><strong>Aniversário de contrato:</strong> mensagem do sócio com o que foi feito no ano</li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3>Quando pedir indicação</h3>
+        <ul>
+          <li>Logo depois da primeira vitória</li>
+          <li>Quando a pesquisa vier 9 ou 10</li>
+          <li>Na reunião trimestral em que o resultado foi bom</li>
+        </ul>
+        <p class="muted" style="font-size:.9rem">Peça um nome, não “se souber de alguém”. Agradeça toda indicação, feche ou não, e conte ao cliente como foi.</p>
+      </div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Serviço de expansão</th><th>Sinal para oferecer</th></tr></thead>
+      <tbody>
+        <tr><td>Recuperação tributária</td><td>Prestador de serviço no Presumido (como a exclusão do ISS da base do PIS/COFINS), ou ST e monofásicos não segregados</td></tr>
+        <tr><td>Holding e sucessão</td><td>Sócios com patrimônio relevante, produtor rural com família no negócio</td></tr>
+        <tr><td>Renegociação de dívidas bancárias</td><td>Endividamento rural ou empresarial citado na reunião trimestral</td></tr>
+        <tr><td>Consultoria em gestão e Jornada em 6 encontros</td><td>Empresa contratando, equipe crescendo, dono sem tempo para gerir</td></tr>
+        <tr><td>Planejamento tributário</td><td>Mudança de faturamento, novo sócio, nova atividade ou virada de ano</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</article>
+
+</div>
+
+<!-- Scripts -->
+<section class="part" id="scripts">
+  <div class="head" style="display:flex;flex-direction:column;gap:6px">
+    <span class="eyebrow">Mensagens prontas</span>
+    <h2>Scripts da trilha</h2>
+    <p class="muted" style="max-width:66ch">Complementam a fala de visita e a cadência D+1 a D+30 do Roteiro de Rua. Troque os campos entre colchetes antes de enviar.</p>
+  </div>
+  <div class="scripts">
+    <div class="script"><div class="top"><div><h3>Ligação para indicado</h3><span class="when">Etapa 1 · no mesmo dia da indicação</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>Oi, [Nome], tudo bem? Aqui é o Alessandro Matos, sócio da NTW aqui de Mineiros. O [nome de quem indicou] me passou seu contato e falou bem do seu trabalho.
+
+Ele comentou que você [motivo que ele contou]. Eu queria entender um pouco melhor o seu caso, sem compromisso nenhum. Posso passar aí [dia] às [hora] ou às [hora]?</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Retorno do diagnóstico</h3><span class="when">Etapa 3 · nunca com o resultado por escrito</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], olhei sua guia com calma. Achei duas coisas aqui que valem 15 minutos de conversa.
+
+Posso passar aí [dia] às [hora] ou às [hora]?</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Confirmação depois da reunião</h3><span class="when">Etapa 6 · antes de sair do estacionamento</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], obrigado pelo tempo hoje! Como combinamos, te ligo [dia] às [hora] para você me dizer se começamos dia [data].
+
+Se surgir qualquer dúvida antes disso, é só me chamar aqui.</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Pós-proposta D+2</h3><span class="when">Etapa 6 · só tirar dúvida</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>Bom dia, [Nome]! Ficou alguma dúvida na proposta? Se quiser, explico qualquer ponto por aqui mesmo ou por ligação.</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Pós-proposta D+5</h3><span class="when">Etapa 6 · um ponto novo, sem pedido</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], lembrei de mais um ponto do seu caso: [ponto do diagnóstico ou prazo fiscal que afeta ele].
+
+É só para você ter no radar. Abraço!</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Pós-proposta D+10</h3><span class="when">Etapa 6 · pergunta binária</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], me ajuda com uma coisa só, para eu me organizar aqui:
+
+1 — Começamos dia [data]
+2 — Agora não é o momento
+
+Pode responder só o número. As duas respostas estão ótimas para mim.</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Boas-vindas</h3><span class="when">Etapa 7 · dia da assinatura</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], seja muito bem-vindo à NTW Mineiros! A partir de agora a migração é com a gente.
+
+Hoje mesmo vou te mandar a lista de documentos, tudo de uma vez, e a [nome da pessoa da equipe] vai ser seu contato do dia a dia. Na [dia] fazemos a reunião de orientação para alinhar como vai funcionar.
+
+Qualquer coisa, é só chamar.</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Pedido de indicação</h3><span class="when">Etapa 8 · depois de uma vitória</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], fico feliz que [resultado] tenha dado certo. Uma pergunta: tem algum amigo ou parceiro de negócio, dono de empresa aqui da região, que você acha que eu deveria conhecer?
+
+Se tiver, me passa o nome que eu falo que foi você quem indicou. E se ele não quiser conversar, tudo certo também.</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Convite a parceiro</h3><span class="when">Etapa 1 · gerente de banco, advogado, corretor</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], tudo bem? Aqui é o Alessandro, da NTW Mineiros. A gente atende muitos clientes em comum aqui na cidade, e eu queria te conhecer melhor e entender como posso ajudar os seus clientes quando surgir uma questão contábil ou tributária.
+
+Um café [dia] às [hora] ou às [hora]?</pre></div>
+
+    <div class="script"><div class="top"><div><h3>Retomada da safra futura</h3><span class="when">90 dias depois · sempre com assunto novo</span></div><button class="copy" type="button">Copiar</button></div>
+<pre>[Nome], tudo bem? Saiu uma novidade que afeta [ramo dele]: [mudança de legislação, prazo ou tema do setor], em duas linhas.
+
+É só um ponto de atenção mesmo. Se quiser que eu olhe como isso fica no seu caso, me chama.</pre></div>
+  </div>
+</section>
+
+<!-- Rotina -->
+<section class="part" id="rotina">
+  <div class="head" style="display:flex;flex-direction:column;gap:6px">
+    <span class="eyebrow">Gestão</span>
+    <h2>Semana comercial</h2>
+    <p class="muted" style="max-width:66ch">A mesma semana do Roteiro de Rua, agora com as etapas que vêm depois do fechamento.</p>
+  </div>
+  <div class="week">
+    <div><span class="label">Segunda</span><span class="who">Apoio interno</span><ul><li>Lista de 20 empresas: um nicho, uma zona</li><li>Atualizar CRM e cobrar leads parados</li></ul></div>
+    <div><span class="label">Terça</span><span class="who">Sócio</span><ul><li>Rua, das 8h30 às 11h30 e das 14h às 17h</li><li>15 a 20 abordagens</li></ul></div>
+    <div><span class="label">Quarta</span><span class="who">Apoio interno</span><ul><li>Disparos da cadência</li><li>Follow-ups pós-proposta</li><li>Pendências de implantação</li></ul></div>
+    <div><span class="label">Quinta</span><span class="who">Sócio</span><ul><li>Diagnósticos e reuniões</li><li>Ligações para indicados</li></ul></div>
+    <div><span class="label">Sexta</span><span class="who">Sócio e apoio</span><ul><li>Reuniões e propostas</li><li>17h: placar da semana</li></ul></div>
+  </div>
+</section>
+
+<!-- Placar -->
+<section class="part" id="placar">
+  <div class="head" style="display:flex;flex-direction:column;gap:6px">
+    <span class="eyebrow">Gestão</span>
+    <h2>Placar</h2>
+    <p class="muted" style="max-width:66ch">As metas semanais vêm do Roteiro de Rua e são ritmo inicial. Depois de quatro semanas, troque-as pelas taxas reais do escritório.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Indicador</th><th>Etapa</th><th>Meta inicial</th><th>Se ficar abaixo</th></tr></thead>
+    <tbody>
+      <tr><td>Abordagens na rua</td><td class="num">1</td><td class="num">15–20 por semana</td><td>Proteger a terça na agenda</td></tr>
+      <tr><td>WhatsApps capturados</td><td class="num">1</td><td class="num">10 por semana</td><td>Você está oferecendo algo em troca do número?</td></tr>
+      <tr><td>Resposta a lead de Instagram, site ou indicação</td><td class="num">1</td><td class="num">até 2h</td><td>Definir quem responde quando o sócio está na rua</td></tr>
+      <tr><td>Guias recebidas ou descobertas feitas</td><td class="num">3</td><td class="num">3 por semana</td><td>A oferta do D+8 está concreta e fácil de aceitar?</td></tr>
+      <tr><td>Reuniões agendadas</td><td class="num">4</td><td class="num">2 por semana</td><td>Sempre dois horários, nunca pergunta aberta</td></tr>
+      <tr><td>Propostas entregues</td><td class="num">5</td><td class="num">1–2 por semana</td><td>A proposta está indo impressa para a reunião?</td></tr>
+      <tr><td>Clientes fechados</td><td class="num">6</td><td class="num">1 por semana · ~4 por mês</td><td>Revisar preço e o argumento da migração</td></tr>
+      <tr><td>Implantações no prazo</td><td class="num">7</td><td class="num">primeira entrega sem pendência</td><td>Revisar a lista de documentos e quem cobra o cliente</td></tr>
+      <tr><td>Clientes vindos de indicação</td><td class="num">8</td><td class="num">acompanhar mensalmente</td><td>O pedido está acontecendo depois de cada vitória?</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note info"><span class="label">Revisão do mês</span><p>No último dia útil, olhe também: ciclo médio do lead ao contrato, honorário médio dos novos clientes, perdas por motivo e por canal, e clientes que saíram no mês.</p></div>
+</section>
+
+<!-- Status no CRM -->
+<section class="part" id="crm">
+  <div class="head" style="display:flex;flex-direction:column;gap:6px">
+    <span class="eyebrow">Gestão</span>
+    <h2>Status no CRM</h2>
+    <p class="muted" style="max-width:66ch">Use exatamente estes nomes. O tempo máximo parado é o alerta para a segunda-feira.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Status</th><th>Entra quando</th><th>Sai quando</th><th>Máximo parado</th></tr></thead>
+    <tbody>
+      <tr><td><span class="status">Novo lead</span></td><td>Contato chega por qualquer canal</td><td>Ficha de qualificação preenchida</td><td class="num">2 dias úteis</td></tr>
+      <tr><td><span class="status">Em cadência</span></td><td>Lead B da rua ou do flyer</td><td>Guia recebida, ou D+30 sem resposta</td><td class="num">30 dias</td></tr>
+      <tr><td><span class="status">Em diagnóstico</span></td><td>Guia recebida ou descoberta feita</td><td>Reunião marcada</td><td class="num">2 dias úteis</td></tr>
+      <tr><td><span class="status">Reunião marcada</span></td><td>Data e hora confirmadas</td><td>Proposta entregue</td><td class="num">5 dias úteis</td></tr>
+      <tr><td><span class="status">Proposta entregue</span></td><td>Proposta nas mãos do cliente</td><td>Ganho ou perdido</td><td class="num">10 dias</td></tr>
+      <tr><td><span class="status">Em implantação</span></td><td>Contrato assinado</td><td>Primeira competência entregue</td><td class="num">30 dias</td></tr>
+      <tr><td><span class="status">Cliente ativo</span></td><td>Implantação concluída</td><td>Encerramento de contrato</td><td class="num">reunião a cada trimestre</td></tr>
+      <tr><td><span class="status">Safra futura</span></td><td>Lead C, D+30 sem resposta ou perda</td><td>Retomada com assunto novo</td><td class="num">90 dias</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  <p><strong>Trilha de Vendas · NTW Mineiros.</strong> Construída a partir do Roteiro de Rua, da proposta técnica e comercial Standard e do portfólio da unidade.</p>
+  <p>Ganchos técnicos e exemplos tributários são ângulos de conversa. Revalide alíquotas, anexos e regras na legislação vigente, inclusive o que a transição da Reforma já alterou em 2026, antes de levar ao cliente.</p>
+</footer>
+
+</div>
+
+<script>
+document.querySelectorAll('button.copy').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var pre = btn.closest('.script').querySelector('pre');
+    var text = pre.innerText;
+    function done(){ btn.textContent='Copiado'; btn.classList.add('done'); setTimeout(function(){btn.textContent='Copiar';btn.classList.remove('done');},1800); }
+    function fallback(){ var r=document.createRange(); r.selectNodeContents(pre); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent='Selecionado'; setTimeout(function(){btn.textContent='Copiar';},1800); }
+    try{ navigator.clipboard.writeText(text).then(done, fallback); }catch(e){ fallback(); }
+  });
+});
+</script>
